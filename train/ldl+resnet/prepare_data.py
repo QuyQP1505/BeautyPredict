@@ -10,11 +10,18 @@ from PIL import Image
 from PIL import ImageEnhance
 import scipy.misc
 
+# Get the parent directory of the current working directory
 parent_path = os.path.dirname(os.getcwd())
-parent_path = os.path.dirname(parent_path)
-data_path = parent_path + "/dataset/SCUT-FBP5500/Images/"
-rating_path = parent_path + "/dataset/SCUT-FBP5500/All_Ratings/"
-model_path = parent_path + "/common/haarcascade_frontalface_alt.xml"
+
+# Define the relative paths to the data folder and other files
+folder_1 = "BeautyPredict"
+folder_2 = "dataset"
+folder_3 = "SCUT-FBP5500_v2"
+
+data_path = os.path.join(parent_path, folder_1, folder_2, folder_3, "Images")
+rating_path = os.path.join(parent_path, folder_1, folder_2, folder_3, "All_Ratings.xlsx")
+model_path = os.path.join(parent_path, folder_1, "common", "haarcascade_frontalface_alt.xml")
+
 face_cascade = cv2.CascadeClassifier(model_path)
 
 # datagen = ImageDataGenerator(
@@ -25,6 +32,7 @@ face_cascade = cv2.CascadeClassifier(model_path)
 #         zoom_range=0.2,
 #         horizontal_flip=True,
 #         fill_mode='nearest')
+
 datagen = ImageDataGenerator(
                  featurewise_center = False,             #是否使输入数据去中心化（均值为0），
                  samplewise_center  = False,             #是否使输入数据的每个样本均值为0
@@ -38,7 +46,9 @@ datagen = ImageDataGenerator(
                  vertical_flip = False)                  #是否进行随机垂直翻转
 
 def detectFace(detector,image_path, image_name):
-    imgAbsPath = image_path + image_name
+    imgAbsPath = os.path.join(image_path, image_name)
+    # print("Image file:", imgAbsPath)
+
     img = cv2.imread(imgAbsPath)
     if img.ndim == 3:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -108,10 +118,11 @@ pre_vote_image_score4_cnt = 0
 pre_vote_image_score5_cnt = 0
 
 for rating_file_name in rating_files:
+    rating_parent_path = os.path.join(parent_path, "BeautyPredict", "dataset", "SCUT-FBP5500_v2", rating_file_name)
+    # print("rating_parent_path:", rating_parent_path)
+    rating_file = open(rating_parent_path, 'r')
 
-    rating_file = open(rating_path+rating_file_name, 'r')
-
-    lines = rating_file.readlines();
+    lines = rating_file.readlines()
     lines.pop(0)
     lineIdx = 0
 
@@ -144,7 +155,10 @@ for rating_file_name in rating_files:
 
             if isinstance(im, numpy.ndarray):
                 # 原始数据样本
-                normed_im = (im - 127.5) / 127.5
+                try:
+                    normed_im = (im - 127.5) / 127.5
+                except:
+                    print(pre_vote_image_name + ": Out of Memory")
 
                 ld = []
                 ld.append(score1_ld)
@@ -155,7 +169,7 @@ for rating_file_name in rating_files:
                 lable_distribution.append([pre_vote_image_name, normed_im, ld])
 
             else:
-                print(pre_vote_image_name + " 未检测到人脸，丢弃样本")
+                print(pre_vote_image_name + ": Face cannot be detected, sample is discarded")
 
             pre_vote_image_name = curr_row_image_name
             pre_vote_image_score1_cnt = 0
